@@ -11,7 +11,7 @@ This repository contains a Python implementation of the K-Means clustering algor
 - `parse_data`: Parses the given text (expected to be data points, separated by newline) and returns them as a numpy array.
 - `distance_function`: Calculates the Euclidean distance between two numpy arrays, useful for determining which cluster a data point belongs to.
 - `sum_of_squared_errors`: Calculate the sum of squared errors for a given dataset and clustering.
-- `dummy_cluster`: A function to generate an initial random clustering of the data for initial step of K-means.
+- `kmeans_plusplus`: A function to generate an initial clustering of the data for initial step of K-means.
 - `write_output`: Write the centroids and partition data to files.
 - `optimal_partition`: Assigns each data point to the nearest centroid based on Euclidean distance.
 - `read_data_from_url`: Reads data from a URL and returns it as a numpy array after parsing.
