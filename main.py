@@ -41,16 +41,29 @@ def sum_of_squared_errors(data, centroids, partition):
         total_error += distance_function(point, centroid) ** 2
     return total_error
 
-def dummy_cluster(data, k):
+def kmeans_plusplus(data, k):
     """
     :param data: The data points to be clustered.
     :param k: The number of clusters to be created.
-    :return: A tuple containing the centroids of the clusters and the partition of data points into clusters.
+    :return: initial centroids.
     """
     n_points = len(data)
-    centroids = data[np.random.choice(n_points, k, replace=False)]
-    partition = np.random.randint(0, k, size=n_points)
-    return centroids, partition
+    # Choose a center uniformly:
+    centroids = [data[np.random.randint(n_points)]]
+    for _ in range(1, k):
+        dist_sq = np.array([min([np.inner(c-x, c-x) for c in centroids]) for x in data])
+        probs = dist_sq/dist_sq.sum()
+        cumulative_probs = probs.cumsum()
+        r = np.random.rand()
+
+        # Choose a random data point as new center with weighted prob distribution
+        # is based on distance from distance from existing centroids
+        for j, p in enumerate(cumulative_probs):
+            if r < p:
+                i = j
+                break
+        centroids.append(data[i])
+    return np.array(centroids)
 
 def write_output(centroids, partition, centroid_file='centroid.txt', partition_file='partition.txt'):
     """
@@ -69,7 +82,7 @@ def write_output(centroids, partition, centroid_file='centroid.txt', partition_f
 
 def optimal_partition(data, centroids):
     """
-
+ KD tree (cKDTree) is built using the centroids of the clusters. The query() method from cKDTree is then used to find the nearest centroid for each provided data point. The method tree.query(data) returns a tuple where the first element is the distance to the closest centroid, and the second element is the index of the closest centroids in the original centroids array for each point in the data set. The function thus essentially performs a nearest neighbour search.
     :param data: numpy array of shape (N, D) representing the data points to be assigned to partitions.
     :param centroids: numpy array of shape (M, D) representing the centroids of the partitions.
     :return: numpy array of shape (N,) containing the index of the partition to which each data point is assigned.
@@ -129,14 +142,10 @@ def kmeans(data, k):
     :param k: The number of clusters to create.
     :return: A tuple containing the final centroids, partition, and activity tracker.
 
-    The method initializes the centroids and partition using the `dummy_cluster` method. Then, it enters a loop
-    where it calculates a new partition and centroids using the `optimal_partition` and `fetch_new_centroids` methods.
-    It also calculates the sum of squared errors (SSE) and tracks the number of active centroids.
-    The loop continues until convergence is reached, where the new centroids are the same as the previous centroids.
-    Finally, the method returns the final centroids, partition, and activity tracker.
 
     """
-    centroids, partition = dummy_cluster(data, k)
+    centroids = kmeans_plusplus(data, k)
+    partition = optimal_partition(data, centroids)
     activity_tracker = []
 
     while True:
@@ -145,12 +154,11 @@ def kmeans(data, k):
 
         # Calculate SSE and number of active centroids
         sse = sum_of_squared_errors(data, new_centroids, new_partition)
-        active_centroids = np.unique(new_partition)
-        active_centroids_count = len(active_centroids)
-        active_centroids_percent = (active_centroids_count / k) * 100
+        active_centroids = np.count_nonzero(np.any(np.abs(centroids - new_centroids) > 0.001, axis=1))
+        active_centroids_percent = (active_centroids / k) * 100
 
         # Track the values
-        activity_tracker.append((sse, active_centroids_count, active_centroids_percent))
+        activity_tracker.append((sse, active_centroids, active_centroids_percent))
 
         # Check for convergence
         if np.all(new_centroids == centroids):
@@ -160,6 +168,11 @@ def kmeans(data, k):
         partition = new_partition
 
     return centroids, partition, activity_tracker
+
+#Todo Implement random swap. Compare random swap and k-means, how many trial swaps can we perform using the same k-means algorithm requires.
+def random_swap():
+    pass
+
 
 def main():
     """
